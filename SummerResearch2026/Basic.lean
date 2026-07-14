@@ -70,6 +70,7 @@ theorem IsRegular.regex {l : Language Symbol} (h : l.IsRegular) :
 
   sorry
 
+omit [Inhabited Symbol] in
 theorem IsRegular.char (a : Symbol) : ({[a]} : Language Symbol).IsRegular := by
   rw [Cslib.Language.IsRegular.iff_dfa]
   let flts := Cslib.FLTS.mk (fun (s : Fin 3) (x : Symbol) ↦ if (s = 0 ∧ x = a) then 1 else 2)
@@ -85,7 +86,61 @@ theorem IsRegular.char (a : Symbol) : ({[a]} : Language Symbol).IsRegular := by
   | append_singleton xs x ih =>
     simp only [Fin.isValue, Acceptor.mem_language, Acceptor.Accepts, mem_singleton_iff,
       Cslib.FLTS.mtr_concat_eq] at ih ⊢
-    sorry
+
+    constructor
+    intro h
+    have h1 (n : Fin 3) (ch : Symbol) : flts.tr n ch = 1 ↔ n = 0 ∧ ch = a := by
+      simp [flts]
+    have h2 (n : Fin 3) (ch : Symbol) : flts.tr n ch = 0 → False := by
+      simp [flts]
+      intro h2_1
+      split_ifs at h2_1 with hP
+      norm_num at h2_1
+      omega
+    have h3 (l : List Symbol) : flts.mtr 0 l = 0 → l = [] := by
+      induction l using List.reverseRec with
+      | nil =>
+      intro h3_1
+      rfl
+
+      | append_singleton ys z ihl =>
+      intro a1
+      simp only [Cslib.FLTS.mtr_concat_eq] at a1
+      exfalso
+      apply h2
+      apply a1
+    have h4 : flts.mtr 0 xs = 0 ∧ x = a := by
+
+      apply (h1 (flts.mtr 0 xs) x).mp
+      exact h
+    rw [h4.2]
+    have h5 : xs = [] := by
+      apply (h3 xs)
+      exact h4.1
+    rw [h5]
+    simp
+    trivial
+
+
+
+
+
+
+
+    intro h
+    cases xs with
+      | nil =>
+        simp only [Fin.isValue, Cslib.FLTS.mtr, foldl_nil, flts, true_and, Fin.isValue, ite_eq_left_iff, Fin.reduceEq, imp_false, Decidable.not_not]
+        simp at h
+        have h2 : ([x] : List Symbol) = [a] := h
+        simp at h2
+        exact h2
+      | cons y ys =>
+        have h2 : (y :: ys ++ [x] : List Symbol) = [a] := h
+        simp at h2
+
+
+
 
 theorem IsRegular.iff_regex {l : Language Symbol} :
     l.IsRegular ↔ ∃ r : RegularExpression Symbol, matches' r = l := by
