@@ -42,14 +42,32 @@ noncomputable def regex_of_dfa (i j : Fin (Fintype.card State)) : ℕ → Regula
   | 0 => if i = j then sorry else sorry
   | k + 1 => if k ≥ Fintype.card State then regex_of_dfa i j k else sorry
 
+/- From Yi-Siong's PR. -/
+theorem matches'_sum_map {α : Type*} (L : List α) (f : α → RegularExpression α) :
+    (L.map f).sum.matches' = ⋃ x ∈ L, (f x).matches' := by
+  induction L with
+  | nil => simp [Language.zero_def]
+  | cons b L' ih =>
+    simp only [List.map_cons, List.sum_cons, matches', add_eq_sup, List.mem_cons,
+      iUnion_iUnion_eq_or_left, ih]
+    rfl
+
 theorem IsRegular.regex {l : Language Symbol} (h : l.IsRegular) :
     ∃ r : RegularExpression Symbol, matches' r = l := by
   classical
   obtain ⟨State, h_fin, ⟨da, acc⟩, rfl⟩ := Cslib.Language.IsRegular.iff_dfa.mp h
   let : Fintype State := Fintype.ofFinite State
   let equiv : State ≃ Fin (Fintype.card State) := Fintype.equivFin State
-  let acc_ind : Finset (Fin (Fintype.card State)) := Finset.univ.filter (fun i ↦ equiv.symm i ∈ acc)
-  -- let regex : RegularExpression Symbol := ∑ i ∈ acc_ind, regex_of_dfa (equiv da.start) i (Fintype.card State)
+  let acc_List : List (Fin (Fintype.card State)) := (acc.toFinset.map equiv.toEmbedding).sort (· ≤ ·)
+  let regex : RegularExpression Symbol := (acc_List.map (fun i => regex_of_dfa (equiv da.start) i (Fintype.card State))).sum
+  use regex
+  ext xs
+  simp [regex, Acceptor.Accepts]
+  /- Deal with each accepted state separately: Use `matches'_sum_map` -/
+
+
+
+
   sorry
 
 theorem IsRegular.char (a : Symbol) : ({[a]} : Language Symbol).IsRegular := by
